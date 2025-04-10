@@ -1,7 +1,7 @@
 package org.example
 
 import org.example.entities.InventoryItem
-import org.example.projectExemples.readSpecificColumns
+
 import org.example.service.createExcelFile
 import org.example.service.readExcelFile
 import org.example.service.removeItemByIndex
@@ -60,5 +60,4 @@ fun main() {
     //Atualizar dados
     updateCellValue(filePath, 0, 19, 2, "20")
 
-    readSpecificColumns(apoiemais)
 }
