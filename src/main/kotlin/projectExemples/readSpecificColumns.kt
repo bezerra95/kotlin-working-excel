@@ -1,62 +1,96 @@
-package org.example.projectExemples
-
-import org.apache.poi.ss.usermodel.WorkbookFactory
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import org.apache.poi.ss.usermodel.*
+import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import org.example.entities.EligibleProject
 import java.io.File
 import java.io.FileInputStream
 
-fun readSpecificColumns(filePath: String) {
-    val file = File(filePath)
+fun main() {
+    // Caminho do arquivo Excel de entrada
+    val file = File("src/main/kotlin/files/projetos-aptos-a-captacao.xlsx")
 
-    // Verifica se o arquivo realmente existe no caminho fornecido
-    if (!file.exists()) {
-        println("O arquivo não foi encontrado no caminho especificado.")
-        return
+    // Caminho do arquivo JSON de saída
+    val outputFile = File("src/main/kotlin/files/dados_extraidos.json")
+
+    // Lista para armazenar todos os projetos lidos da planilha
+    val projects = mutableListOf<EligibleProject>()
+
+    // Leitura do arquivo Excel
+    FileInputStream(file).use { fis ->
+        val workbook: Workbook = XSSFWorkbook(fis)
+        val sheet: Sheet = workbook.getSheetAt(0) // Pegamos a primeira aba da planilha
+        val startRowIndex = 2 // Começa a ler da linha 3 (índice 2), pulando cabeçalhos
+
+        for (rowIndex in startRowIndex..sheet.lastRowNum) {
+            val row = sheet.getRow(rowIndex) ?: continue // Pula linhas nulas
+
+            // Verifica se todas as células da linha estão vazias
+            val isRowEmpty = (0..13).all { index ->
+                getCellValue(row, index).isBlank()
+            }
+            if (isRowEmpty) continue // pula linha vazia
+
+            try {
+                // Mapeia os dados da linha para o objeto EligibleProject
+                val project = EligibleProject(
+                    number = getCellValue(row, 0),
+                    processNumber = getCellValue(row, 1),
+                    proponent = getCellValue(row, 2),
+                    projectName = getCellValue(row, 3),
+                    sli = getCellValue(row, 4),
+                    numberCount = getCellValue(row, 5),
+                    sportManifestation = getCellValue(row, 6),
+                    sportModality = getCellValue(row, 7),
+                    cnpj = getCellValue(row, 8),
+                    city = getCellValue(row, 9),
+                    state = getCellValue(row, 10),
+                    authorizedAmount = getCellValue(row, 11),
+                    publicationDate = getCellValue(row, 12),
+                    fundraisingDeadline = getCellValue(row, 13)
+                )
+
+                // Adiciona o projeto na lista
+                projects.add(project)
+
+            } catch (e: Exception) {
+                // Exibe erro no terminal se houver falha ao processar alguma linha
+                println("❌ Erro na linha $rowIndex: ${e.message}")
+            }
+        }
+
+        // Fecha o arquivo Excel após leitura
+        workbook.close()
     }
 
-    FileInputStream(file).use { fis ->
-        // Cria um workbook (planilha) a partir do arquivo Excel
-        val workbook = WorkbookFactory.create(fis)
-        val sheet = workbook.getSheetAt(0) // Pega a primeira aba da planilha
+    // Cria um objeto que transforma a lista em JSON
+    val objectMapper = jacksonObjectMapper()
 
-        // Lê a linha do cabeçalho (linha 1, ou seja, segunda linha da planilha)
-        val headerRow = sheet.getRow(1)
-        val columnNames = mutableListOf<String>()
+    // Converte a lista de projetos para JSON (em formato bonito)
+    val jsonOutput = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(projects)
 
-        // Só adiciona os nomes das colunas que NÃO estão vazias
-        for (cell in headerRow) {
-            val value = cell.stringCellValue.trim()
-            if (value.isNotEmpty()) {
-                columnNames.add(value)
+    // Salva o JSON no arquivo de saída
+    outputFile.writeText(jsonOutput)
+
+    // Mensagem final
+    println("✅ JSON gerado com sucesso em: ${outputFile.absolutePath}")
+}
+
+// Função para extrair o valor de uma célula como String, mesmo que seja número ou data
+fun getCellValue(row: Row, index: Int): String {
+    val cell = row.getCell(index, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK)
+
+    return when (cell.cellType) {
+        CellType.STRING -> cell.stringCellValue.trim()
+        CellType.NUMERIC -> {
+            if (DateUtil.isCellDateFormatted(cell)) {
+                // Se for data, retorna no formato padrão ISO
+                cell.localDateTimeCellValue.toLocalDate().toString()
+            } else {
+                // Se for número, converte para string
+                cell.numericCellValue.toString()
             }
         }
-
-        // Percorre todas as linhas da planilha a partir da linha 1 (segunda linha)
-        for (rowIndex in 1..sheet.lastRowNum) {
-            val row = sheet.getRow(rowIndex)
-            if (row != null) {
-                var isEmptyRow = true
-                val rowData = mutableListOf<String>()
-
-                // Para cada coluna válida (com nome), pega o valor da célula
-                for ((index, columnName) in columnNames.withIndex()) {
-                    val cell = row.getCell(index)
-                    val cellValue = cell?.toString()?.trim() ?: ""
-
-                    if (cellValue.isNotEmpty()) {
-                        isEmptyRow = false
-                    }
-
-                    rowData.add("$columnName: $cellValue")
-                }
-
-                // Só imprime se houver algum dado na linha
-                if (!isEmptyRow) {
-                    rowData.forEach { println(it) }
-                    println() // Linha em branco para separar os registros
-                }
-            }
-        }
-
-        workbook.close()
+        CellType.BOOLEAN -> cell.booleanCellValue.toString()
+        else -> ""
     }
 }
