@@ -1,4 +1,4 @@
-package org.example.service
+package functions
 
 import org.apache.poi.ss.usermodel.WorkbookFactory
 import org.example.entities.InventoryItem

@@ -12,7 +12,7 @@ data class EligibleProject(
     val cnpj: String,
     val city: String,
     val state: String,
-    val authorizedAmount: String,
+    val authorizedValue: String,
     val publicationDate: String,
     val fundraisingDeadline: String
 )

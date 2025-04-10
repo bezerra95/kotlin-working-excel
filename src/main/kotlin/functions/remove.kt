@@ -12,6 +12,7 @@ import java.io.FileOutputStream
  * @return true se a linha foi removida com sucesso; false se o índice for inválido.
  */
 
+
 fun removeItemByIndex(filePath: String, index: Int): Boolean {
     // Abre o arquivo Excel para leitura
     FileInputStream(filePath).use { fis ->
