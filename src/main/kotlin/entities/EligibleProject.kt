@@ -2,7 +2,7 @@ package org.example.entities
 
 data class EligibleProject(
     val number: String,
-    val processNumber: String,
+    val processNumber: String?,
     val proponent: String,
     val projectName: String,
     val sli: String,
